@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565726942425.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3516232991",
+    "id" : "905FFD1D",
+    "lastKnownWriteTime" : 1565801006,
+    "last_content_update" : 1565801006804,
+    "path" : "~/taller_ggplot/ggplot_workshop.Rmd",
+    "project_path" : "ggplot_workshop.Rmd",
+    "properties" : {
+        "cursorPosition" : "54,24",
+        "docOutlineVisible" : "0",
+        "last_setup_crc32" : "851f29f830dfb16",
+        "scrollLine" : "48"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

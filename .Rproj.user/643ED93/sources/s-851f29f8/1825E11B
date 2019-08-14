@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565727238083.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1825E11B",
+    "lastKnownWriteTime" : 80,
+    "last_content_update" : 1565727238083,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "BA36AEC2",
+        "caption" : "bikes_new",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=bikes_new&cache_key=BA36AEC2",
+        "displayedObservations" : 1462,
+        "environment" : "",
+        "object" : "bikes_new",
+        "preview" : 0,
+        "totalObservations" : 1462,
+        "variables" : 17
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565793011986.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "4F327603",
+    "lastKnownWriteTime" : -4133829520086421923,
+    "last_content_update" : 1565793011986,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "6937BCC9",
+        "caption" : "bikes_summary",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=bikes_summary&cache_key=6937BCC9",
+        "displayedObservations" : "8",
+        "environment" : "",
+        "object" : "bikes_summary",
+        "preview" : "0",
+        "totalObservations" : "8",
+        "variables" : "2"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

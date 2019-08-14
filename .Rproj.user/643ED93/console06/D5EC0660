@@ -1,0 +1,8 @@
+]0;/home/ppereda/taller_ggplot~/taller_ggplot[36m [00m > git status
+fatal: Not a git repository (or any of the parent directories): .git
+]0;/home/ppereda/taller_ggplot~/taller_ggplot[36m [00m > git remote add origin https://github.com/paulapereda/taller_ggplot.git
+fatal: Not a git repository (or any of the parent directories): .git
+]0;/home/ppereda/taller_ggplot~/taller_ggplot[36m [00m > git init
+Initialized empty Git repository in /home/ppereda/taller_ggplot/.git/
+]0;/home/ppereda/taller_ggplot~/taller_ggplot[36m [00m > git initremote add origin https://github.com/paulapereda/taller_ggplot.git
+]0;/home/ppereda/taller_ggplot~/taller_ggplot[36m [00m > git add -A

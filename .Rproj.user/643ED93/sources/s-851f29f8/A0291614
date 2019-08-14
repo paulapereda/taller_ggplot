@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1565793046801.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A0291614",
+    "lastKnownWriteTime" : 6,
+    "last_content_update" : 1565793046801,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "E16190FA",
+        "caption" : "bikes",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=bikes&cache_key=E16190FA",
+        "displayedObservations" : 1462,
+        "environment" : "",
+        "object" : "bikes",
+        "preview" : 0,
+        "totalObservations" : 1462,
+        "variables" : 16
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

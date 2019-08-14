@@ -1,0 +1,771 @@
+---
+title: "CCE & R"
+subtitle: "Un ejercicio práctico"
+author: "Paula Pereda"
+date: "12 de agosto"
+output:
+  xaringan::moon_reader:
+    css: ['default', 'metropolis', 'metropolis-fonts', 'my-css.css']
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+class: inverse, middle
+
+```{R, setup, include = F}
+# devtools::install_github("dill/emoGG")
+library(broom)
+library(tidyverse)
+library(latex2exp)
+library(ggplot2)
+library(ggthemes)
+library(ggforce)
+library(viridis)
+library(extrafont)
+library(gridExtra)
+library(kableExtra)
+library(snakecase)
+library(janitor)
+library(data.table)
+library(dplyr)
+library(estimatr)
+library(lubridate)
+library(knitr)
+library(parallel)
+library(lfe)
+library(here)
+library(magrittr)
+library(readxl)
+
+# Define pink color
+red_pink <- "#e64173"
+turquoise <- "#20B2AA"
+orange <- "#FFA500"
+red <- "#fb6107"
+blue <- "#2b59c3"
+green <- "#8bb174"
+grey_light <- "grey70"
+grey_mid <- "grey50"
+grey_dark <- "grey20"
+purple <- "#6A5ACD"
+slate <- "#314f4f"
+# Dark slate grey: #314f4f
+# Knitr options
+opts_chunk$set(
+  comment = "#>",
+  fig.align = "center",
+  fig.height = 5,
+  fig.width = 8.5,
+  warning = F,
+  message = F
+)
+opts_chunk$set(dev = "svg")
+options(device = function(file, width, height) {
+  svg(tempfile(), width = width, height = height)
+})
+options(crayon.enabled = F)
+options(knitr.table.format = "html")
+# A blank theme for ggplot
+theme_empty <- theme_bw() + theme(
+  line = element_blank(),
+  rect = element_blank(),
+  strip.text = element_blank(),
+  axis.text = element_blank(),
+  plot.title = element_blank(),
+  axis.title = element_blank(),
+  plot.margin = structure(c(0, 0, -0.5, -1), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_simple <- theme_bw() + theme(
+  line = element_blank(),
+  panel.grid = element_blank(),
+  rect = element_blank(),
+  strip.text = element_blank(),
+  axis.text.x = element_text(size = 18, family = "STIXGeneral"),
+  axis.text.y = element_blank(),
+  axis.ticks = element_blank(),
+  plot.title = element_blank(),
+  axis.title = element_blank(),
+  # plot.margin = structure(c(0, 0, -1, -1), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_axes_math <- theme_void() + theme(
+  text = element_text(family = "MathJax_Math"),
+  axis.title = element_text(size = 22),
+  axis.title.x = element_text(hjust = .95, margin = margin(0.15, 0, 0, 0, unit = "lines")),
+  axis.title.y = element_text(vjust = .95, margin = margin(0, 0.15, 0, 0, unit = "lines")),
+  axis.line = element_line(
+    color = "grey70",
+    size = 0.25,
+    arrow = arrow(angle = 30, length = unit(0.15, "inches")
+  )),
+  plot.margin = structure(c(1, 0, 1, 0), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_axes_serif <- theme_void() + theme(
+  text = element_text(family = "MathJax_Main"),
+  axis.title = element_text(size = 22),
+  axis.title.x = element_text(hjust = .95, margin = margin(0.15, 0, 0, 0, unit = "lines")),
+  axis.title.y = element_text(vjust = .95, margin = margin(0, 0.15, 0, 0, unit = "lines")),
+  axis.line = element_line(
+    color = "grey70",
+    size = 0.25,
+    arrow = arrow(angle = 30, length = unit(0.15, "inches")
+  )),
+  plot.margin = structure(c(1, 0, 1, 0), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_axes <- theme_void() + theme(
+  text = element_text(family = "Fira Sans Book"),
+  axis.title = element_text(size = 18),
+  axis.title.x = element_text(hjust = .95, margin = margin(0.15, 0, 0, 0, unit = "lines")),
+  axis.title.y = element_text(vjust = .95, margin = margin(0, 0.15, 0, 0, unit = "lines")),
+  axis.line = element_line(
+    color = grey_light,
+    size = 0.25,
+    arrow = arrow(angle = 30, length = unit(0.15, "inches")
+  )),
+  plot.margin = structure(c(1, 0, 1, 0), unit = "lines", valid.unit = 3L, class = "unit"),
+  legend.position = "none"
+)
+theme_set(theme_gray(base_size = 20))
+# Column names for regression results
+reg_columns <- c("Term", "Est.", "S.E.", "t stat.", "p-Value")
+# Function for formatting p values
+format_pvi <- function(pv) {
+  return(ifelse(
+    pv < 0.0001,
+    "<0.0001",
+    round(pv, 4) %>% format(scientific = F)
+  ))
+}
+format_pv <- function(pvs) lapply(X = pvs, FUN = format_pvi) %>% unlist()
+# Tidy regression results table
+tidy_table <- function(x, terms, highlight_row = 1, highlight_color = "black", highlight_bold = T, digits = c(NA, 3, 3, 2, 5), title = NULL) {
+  x %>%
+    tidy() %>%
+    select(1:5) %>%
+    mutate(
+      term = terms,
+      p.value = p.value %>% format_pv()
+    ) %>%
+    kable(
+      col.names = reg_columns,
+      escape = F,
+      digits = digits,
+      caption = title
+    ) %>%
+    kable_styling(font_size = 20) %>%
+    row_spec(1:nrow(tidy(x)), background = "white") %>%
+    row_spec(highlight_row, bold = highlight_bold, color = highlight_color)
+}
+```
+
+#¿Qué es R?
+
+**R es un lenguaje de programación con enfoque al análisis estadístico.**
+
+Además:
+
+- Software libre (no dice qué podés o no hacer con el software)
+
+- De código abierto (todo el código de R se inspecciona)
+
+- Funcionalidad adicional está en paquetes que la comunidad contribuye
+
+---
+
+# ¿Qué es un IDE?
+
+- acrónimo de Integrated Development Environment (Entorno de Desarrollo Integrado) $\rightarrow$ RStudio es una aplicación que nos entrega herramientas para hacer más fácil el desarrollo de proyectos usando R.
+
+Se ve más o menos así:
+
+.center[
+<img src="images/rstudio.png" width="600">]
+---
+
+# Instalación R
+
+Para poder instalar R y RStudio, se siguen los siguientes pasos:
+
+    - Descargan R desde https://cran.r-project.org/. Eligen la opción que corresponda,
+    según su sistema operativo.
+     
+    - Instalen R en su PC, como cualquier programa.
+    
+    - Una vez que R ha quedado correctamente instalado, descarguen RStudio desde                 https://www.rstudio.com/products/rstudio/download/. Eligen la primera 
+    opción, es decir, "RStudio Desktop Open Source License" (gratis).
+    
+    - Instalan RStudio en su PC,  como cualquier programa.
+
+---
+
+# Utilización de R
+
+.center[
+<img src="images/rstudio_2.png" width="700">]
+---
+
+Si solo abrís R en la PC, lo que verás es una consola. Cuando trabajamos en ella escribimos directamente el código que queremos que se ejecute. El signo $>$ nos indica que R está listo y esperando que escribamos algo.
+
+.center[
+<img src="images/r_consola.png" width="400">]
+
+
+---
+
+# Flujo de trabajo orientado a proyectos
+
+- organizar cada proyecto como una carpeta en sus computadoras
+
+.center[
+<img src="images/project.png" width="700">]
+
+---
+
+# Rutas
+
+R siempre tiene un directorio "actual" de trabajo
+
+```{r}
+getwd()
+```
+
+Tenemos acceso a los archivos que estan en el directorio actual, o podemos especificar una ruta desde el directorio actual hacia donde esta el archivo que queremos.
+
+Usar la función $here()$ para construir una ruta al leer o escribir archivos $\rightarrow$ crea rutas relativas al directorio sudel proyecto
+
+```{r, eval = FALSE}
+install.packages('here')
+library(here)
+```
+
+---
+# ¿Cómo leer archivos en R?
+
+
+
+.center[
+<img src="images/read.png" width="700">]
+
+---
+# Leer archivos (1): readr
+
+¡sirve para leer de manera rápida y amigable **datos rectangulares** (como csv, tsv, etc.)!
+
+
+```{r, eval = FALSE}
+install.packages('readr')
+library(readr)
+```
+
+- **read_csv()**: para leer archivos con coma (“,”) como separador
+ 
+- **read_csv2()**: para leer archivos con punto y coma (“;”) como separador
+ 
+- **read_tsv()**: para leer archivos con tabulador (“\t”) como separador
+
+---
+
+# ejemplo: readr
+ 
+```{r, results = 'hide', message = F}
+csv_mipymes <- read_csv(here('slides', 'data', 'mipyme_2016.csv'))
+```
+
+```{r}
+glimpse(csv_mipymes)
+```
+---
+
+# Leer archivos (2): readxl
+
+¡hace más sencillo extraer datos de **Excel** y leerlos en R!
+
+
+```{r, eval = FALSE}
+install.packages('readxl')
+library(readxl)
+```
+
+- **read_xls**: para leer archivos de extensión .xls
+ 
+- **read_xlsx**: para leer archivos de extensión .xlsx
+
+---
+
+# ejemplo: readxl
+ 
+```{r, results = 'hide', message = F}
+xlsx_mipymes <- read_xlsx(here('slides', 'data', 'mipyme_2016.xlsx'))
+```
+
+```{r}
+glimpse(xlsx_mipymes)
+```
+---
+# Leer archivos (3): haven
+
+¡lee archivos de **SPSS**, **SAS** y **STATA**!
+
+
+```{r, eval = FALSE}
+install.packages('haven')
+library(haven)
+```
+
+- **read_sav**
+ 
+- **read_spss**
+
+- **read_dta** (también se puede usar **read.dta13** de la librería $readstata13$)
+
+---
+
+# escribir archivos
+ 
+También con estas tres librerías se pueden guardar dataframes como archivos:
+
+- **write_csv**
+
+- **write_dta**
+
+---
+# ¿Qué es tidy?
+
+```{r, eval = FALSE}
+install.packages('tidyverse') # ¡solo se hace una vez!
+library(tidyverse)
+```
+
+3 reglas para datos $tidy$:
+
+    1) cada variable tiene su propia columna
+    2) cada observación tiene su propia fila
+    3) cada valor tiene su propia celda
+    
+  .center[
+<img src="images/tidy.png" width="600">]  
+---
+
+# Concepto clave: %>%
+
+El operador %>% funciona así:
+
+f(x) es igual a x %>% f()
+
+Se lee como entonces o después $\rightarrow$ permite leer de izquierda a derecha:
+
+```{r, eval = FALSE}
+mis_datos %>% 
+  hace_esta_cosa() %>% 
+  ahora_esta_otra() %>% 
+  y_una_mas()
+```
+
+```{r, eval = FALSE}
+resultado <- mis_datos %>% 
+  hace_esta_cosa() %>% 
+  ahora_esta_otra() %>% 
+  y_una_mas()
+```
+
+---
+# datos ejemplo: planeta feliz
+
+```{r}
+datos <- read.csv("http://www.lock5stat.com/datasets/HappyPlanetIndex.csv")
+str(datos)
+```
+
+---
+
+Los datos tienen 11 variables:
+
+  - Region: 1 = Latin America, 2 = Western nations, 3 = Middle East, 4 = Sub-Saharan Africa, 5 = South Asia, 6 = East Asia, 7 = former Communist countries
+  - Happiness Scored on a 0-10 scale for average level of happiness (10 is happiest)
+  - LifeExpectancy Average life expectancy (in years)
+  - Footprint Ecological footprint - a measure of the (per capita) ecological impact
+  - HLY Happy Life Years - combines life expectancy with well-being
+  - HPI Happy Planet Index (0-100 scale)
+  - HPIRank HPI rank for the country
+  - GDPperCapita Gross Domestic Product (per capita)
+  - HDI Human Development Index
+  - Population Population (in millions)
+
+---
+# ordenando variables: arrange
+
+```{r, eval = FALSE}
+mis_datos %>% arrange(variable)
+```
+
+Orden descendiente:
+
+```{r, eval = FALSE}
+mis_datos %>% arrange(-variable)
+
+mis_datos %>% arrange(desc(variable))
+```
+
+Para ordenar una variable y luego, la otra:
+
+
+```{r, eval = FALSE}
+mis_datos %>% arrange(variable_1, variable_2)
+```
+---
+# ejemplo: arrange
+
+```{r, results = 'hide'}
+asc <- datos %>% 
+  arrange(Region)
+```
+
+```{r, echo = FALSE}
+head(asc)
+```
+
+---
+```{r, results = 'hide'}
+desc <- datos %>% 
+  arrange(-Region)
+```
+
+```{r, echo = FALSE}
+head(desc)
+```
+
+---
+# escogiendo variables: select
+
+Se queda con todas las filas pero retiene solo algunas variables (columnas)
+
+```{r, eval = FALSE}
+
+my_data %>% 
+    select(VARIABLE1, VARIABLE2)
+```
+
+Elimina variables:
+
+```{r, eval = FALSE}
+
+my_data %>% 
+    select(-variable_1, -variable_2)
+```
+
+---
+# ejemplo: select
+
+```{r, results = 'hide'}
+feliz_chico <- datos %>%
+  select(Country, Region, Happiness)
+```
+
+```{r, echo = FALSE}
+head(feliz_chico)
+```
+
+---
+# enfocándonos en ciertos casos: filter
+
+## Comparación de elementos
+La comparación de elementos se realiza con los siguientes comandos:
+
+- $>$ mayor a
+- $>=$ mayor o igual
+- $<$ menor a
+- $<=$ menor o igual a
+- $==$ igual a
+- $!=$ distinto de
+- %in% contenido en
+
+Este tipo de operaciones regresan un vector lógico dependiendo si la condición se cumple o no.
+
+---
+
+```{r, eval = FALSE}
+mis_datos %>% filter(una_expresion_logica)
+```
+
+Que se cumplan dos condiciones:
+
+```{r, eval = FALSE}
+mis_datos %>% filter(una_expresion_logica & otra_expresion_logica)
+```
+
+Que se cumpla una u otra condición:
+
+```{r, eval = FALSE}
+mis_datos %>% filter(una_expresion_logica | otra_expresion_logica)
+```
+---
+# ejemplo: filter
+
+```{r, results = 'hide'}
+feliz2 <- datos %>%
+  filter(Region == 2)
+
+```
+
+```{r, echo = FALSE}
+head(feliz2)
+```
+---
+
+```{r, results = 'hide'}
+feliz3 <- datos %>%
+   filter(Happiness > 7)
+
+```
+
+
+```{r, echo = FALSE}
+head(feliz3)
+```
+---
+
+# arrange, filter & select
+
+Recordatorio: arrange, filter & select no alteran el dataset original (mis_datos)
+
+```{r, eval = FALSE}
+nuevos_datos <- viejos_datos %>%
+    filter(algunas_filas) %>% 
+    select(algunas_columnas) %>% 
+    arrange(por_variable)
+```
+
+Para alterar el dataset original:
+
+```{r, eval = FALSE}
+viejos_datos <- viejos_datos %>%
+    filter(algunas_filas) %>% 
+    select(algunas_columnas) %>% 
+    arrange(por_variable)
+```
+
+---
+# creando nuevas variables: mutate
+
+```{r, eval = FALSE}
+mis_datos <- mis_datos %>%
+    mutate(variable = expresión)
+```
+
+---
+# ejemplo: mutate
+
+```{r, results = 'hide'}
+feliz <- datos %>%
+  mutate(TotalGDP = GDPperCapita * Population )
+```
+
+```{r, echo = FALSE}
+head(feliz)
+```
+
+---
+# renombrando variables: rename
+
+```{r, eval = FALSE}
+mis_datos <- mis_datos %>%
+    rename(nuevo_nombre = viejo_nombre)
+```
+
+---
+# ejemplo: rename
+
+```{r, results = 'hide'}
+datos_es <- datos %>%
+  rename(pais = Country,
+         felicidad = Happiness)
+```
+
+```{r, echo = FALSE}
+head(datos_es)
+```
+
+---
+# resúmenes agrupados
+
+```{r, eval = FALSE}
+resumen <- mis_datos %>% 
+  group_by(variable_para_agrupar) %>% 
+  summarise(
+    mediana = median(variable),
+    media = mean(variable),
+    des_est = sd(variable))
+
+resumen
+```
+
+```{r, eval = FALSE}
+resumen <- mis_datos %>% 
+  group_by(variable_para_agrupar) %>% 
+  summarise(
+    mediana = median(variable, na.rm = T),
+    media = mean(variable, na.rm = T),
+    des_est = sd(variable, na.rm = T))
+
+resumen
+```
+
+---
+
+```{r, eval = FALSE}
+resumen <- mis_datos %>% 
+  group_by(variable_para_agrupar) %>% 
+  summarise(cuenta = n())
+
+resumen
+```
+---
+
+# ejemplo: group & summarise
+
+```{r, results = 'hide'}
+resumen <- datos %>%
+  group_by(Region) %>%
+  summarise(AverageHappy = mean(Happiness))
+```
+
+```{r, echo = FALSE}
+head(resumen)
+```
+
+---
+# en resumen...
+
+    1) %>%: agiliza el flujo de trabajo
+    
+    2) arrange: ordena variables
+
+    3) select: elige variables
+    
+    4) filter: elige filas
+    
+    5) mutate: crear nuevas variables
+    
+    6) rename: renombra variables
+    
+    7) group_by and summarize: crea resúmenes agrupados
+    
+---
+
+# ¿Qué es R Markdown?
+
+- **archivos .Rmd $\rightarrow$ registro de tu trabajo**: el código que necesitamos para reproducir el trabajo + la narración que un lector necesitaría para entenderlo
+ 
+- **reproducibilidad**:cliqueando un botón, se puede reproducir el trabajo y exportar los resultados como un informe finalizado
+
+- **documentos dinámicos**: se puede elegir exportar los informes finalizados en una variedad de formatos como html, pdf, word, etc.
+     
+---
+
+class: center, middle    
+
+![](https://rmarkdown.rstudio.com/images/RMarkdownOutputFormats.png)
+
+
+---
+
+# Instalar R Markdown
+
+```{r, eval=FALSE}
+install.packages("rmarkdown")
+install.packages("knitr")
+
+library(tidyverse)
+library(rmarkdown)
+library(knitr)
+```
+---
+
+# **Flujo de trabajo**
+
+1) **Abrir un nuevo archivo .Rmd** en  `File -> New File -> R Markdown`
+
+2) **Escribir el documento**
+
+3) **Knit al documento para crear el informe** utilizando el botón `Knit`
+
+4) ¡Obtengo mi informe!
+
+---
+
+# Detrás de escenas
+
+1) Cuando le damos `knit` al documento, R Markdown envía el archivo `.Rmd` a knitr, este ejecuta los fragmentos de código y crea un nuevo documento de formato `.md` que incluye el código y su salida
+
+2) Este archivo generado es luego procesado por `pandoc`, que es responsable de crear el archivo terminado. 
+
+`Ventaja flujo de trabajo de dos pasos:` ¡se puede crear una amplia gama de formatos de salida!
+
+![](http://r4ds.had.co.nz/images/RMarkdownFlow.png)
+
+---
+# Estructura
+
+![](images/estructura.png)
+---
+
+# Encabezado YAML
+
+- Brinda **información básica** sobre el documento: título, fecha, autor, formato
+
+- RStudio lo inserta por nosotros
+
+- Opciones de formato de salida:
+
+Valor Output                  | Formato de salida
+----------------------------  | -------------------
+output: html_document	        | archivo html (página web)
+output: pdf_document	        | documento pdf
+output: word_document	        | Microsoft Word .docx
+output: beamer_presentation   |	presentación beamer (pdf)
+output: ioslides_presentation |	presentación ioslides (html)
+
+- Además puedo agregar: plantilla de estilo, índice, etc.
+
+---
+
+# Sintaxis
+
+- `*cursiva*` y `_cursiva_`
+
+- `**negrita**` y `__negrita__`
+
+- `[link](www.rstudio.com)`
+
+- `# Encabezado 1`
+
+- `## Encabezado 2`
+
+- `### Encabezado 3`
+
+- imagen: `![](camino/a/imagen.png)`
+
+- ` - lista`
+
+---
+# Código
+
+    1) Código incrustado: envuelvo el código con contratildes y r, R reemplaza el código 
+    en línea con sus resultados
+   
+    2) Fragmentos de código: comienza un trozo (chunk) con ```{r} y lo termino con ```
+
+
+Opción  | Efecto
+------  | -------------------
+include | ¿Muestra el fragmento de código de R y su resultado?
+echo    | ¿Muestra el fragmento de código de R?
+message | ¿Muestra los mensajes de salida?
+warning | ¿Muestra las advertencias?
+eval    | ¿Evalúa el fragmento de código?
+
+

@@ -1,0 +1,5 @@
+"0","bikes$season <- factor(bikes$season, levels = c(""winter"", ""spring"", ""summer"", ""fall""))
+"
+"2","Error in factor(bikes$season, levels = c(""winter"", ""spring"", ""summer"",  : 
+  object 'bikes' not found
+"
